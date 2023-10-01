@@ -1,0 +1,24 @@
+// variables
+@import "./variables.scss";
+html , body {
+    background: $backgroundColor;
+    color: $mainTextColor;
+    width: 100%;
+    height: 100%;
+}
+.content-folder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    .content-conteiner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        width: 60%;
+        height: 60%;
+        background: $backgroundContentContainer;
+        margin-top: 4%;
+        border-radius: 2rem;
+    }
+}
