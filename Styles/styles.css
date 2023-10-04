@@ -17,7 +17,7 @@ html, body {
   flex-direction: column;
   width: 60%;
   height: 60%;
-  background: linear-gradient(0deg, rgba(16, 17, 54, 0.65) 0%, rgba(14, 12, 26, 0.65) 100%), url(<path-to-image>), #080A2F;
+  background: linear-gradient(0deg, rgba(16, 17, 54, 0.65) 0%, rgba(14, 12, 26, 0.65) 100%), #080A2F;
   margin-top: 4%;
   border-radius: 2rem;
 }/*# sourceMappingURL=styles.css.map */

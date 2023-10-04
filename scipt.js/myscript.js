@@ -11,8 +11,52 @@ function createPhoneNumber(numbers) {
 
 console.log(formattedPhoneNumber);
 
-const wetherData = async () => {
-  fetch(
-    "https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={8f97bb40f35303f51cf60efa84697528}"
-  );
+
+const userGeolocationAuto = () => {
+  return new Promise((resolve, reject) => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(function (position) {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        resolve({ latitude, longitude });
+      });
+    } else {
+      reject("Geolocation is not available.");
+    }
+  });
 };
+const userLocationManually = () => {
+
+}
+
+const wetherData = async () => {
+  try {
+    const { latitude, longitude } = await userGeolocationAuto();
+    console.log(latitude, longitude);
+
+    const response = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m&current_weather=true&timezone=auto&forecast_days=1`
+    );
+
+    const weatherData = await response.json();
+    return weatherData;
+  } catch (error) {
+    console.error(`Data loading error: ${error}`);
+  }
+};
+
+const reanderWeatherData = async () => {
+  try {
+    const weatherDataObj = await wetherData();
+    console.log(weatherDataObj);
+    const weatherDataArray = weatherDataObj["current_weather"];
+    const temperature = document.querySelector(".temperature-title");
+    const temperatureValue = weatherDataArray["temperature"];
+  
+    // Встановлюємо це значення в текстове поле
+    temperature.textContent = `${temperatureValue}°C`;
+  } catch (error) {
+    console.error(`data loading error${error}`);
+  }
+};
+reanderWeatherData();
