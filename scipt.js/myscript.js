@@ -1,15 +1,3 @@
-console.log("hello");
-const phoneNumberArray = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
-const formattedPhoneNumber = createPhoneNumber(phoneNumberArray);
-
-function createPhoneNumber(numbers) {
-  const firstNumber = numbers.slice(0, 3).join("");
-  const midleNumber = numbers.slice(3, 6).join("");
-  const lastNumber = numbers.slice(6, 10).join("");
-  return `(${firstNumber}) ${midleNumber}-${lastNumber}`;
-}
-
-console.log(formattedPhoneNumber);
 
 const userGeolocationAuto = () => {
   return new Promise((resolve, reject) => {
@@ -17,8 +5,10 @@ const userGeolocationAuto = () => {
       navigator.geolocation.getCurrentPosition(function (position) {
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
+        console.log(latitude, longitude);
         resolve({ latitude, longitude });
       });
+      
     } else {
       reject("Geolocation is not available.");
     }
@@ -26,81 +16,116 @@ const userGeolocationAuto = () => {
 };
 
 const userEntersLocation = () => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     const location = document.querySelector(".location-return");
-    let enteredLocation = ""; // Локальна змінна для зберігання останнього введеного значення
+    const enteredLocation = location.value.trim();
 
-    const handleKeydown = (event) => {
-      if (event.key === "Enter" && location.value.trim() !== "") {
-        enteredLocation = location.value.trim(); // Оновлюємо останнє введене значення
-        console.log(enteredLocation); // Виводимо останнє введене значення
-        location.value = "";
-        resolve(enteredLocation);
-      } else if (event.key === "Enter") {
-        event.preventDefault();
-        reject("Введіть дійсну локацію.");
+    if (enteredLocation === "") {
+      reject("Введіть дійсну локацію.");
+      return;
+    }
+
+    try {
+      const locationData = await fetchLocationData(enteredLocation);
+
+      if (locationData.status === "OK") {
+        const firstResult = locationData.results[0];
+        const latitude = Number(firstResult.geometry.location.lat);
+        const longitude = Number(firstResult.geometry.location.lng);
+        // location.value = "";
+        resolve({ latitude, longitude });
+      } else {
+        reject("Неможливо знайти цю локацію.");
       }
-    };
-
-    location.addEventListener("keydown", handleKeydown);
+    } catch (error) {
+      reject(`Помилка завантаження даних: ${error}`);
+    }
   });
 };
 
-const userLocationManually = async () => {
-  try {
-    const userEnteredLocation = await userEntersLocation();
-    console.log(userEnteredLocation);
-
-    const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${userEnteredLocation}&key=AIzaSyDmbjc-G3ZjtskIGqn5DZQSo0DcIz_6VFA`
-    );
-    const locationData = await response.json();
-    console.log(locationData);
-
-    if (locationData.status === "OK") {
-      const firstResult = locationData.results[0];
-      console.log(firstResult);
-      const latitude = firstResult.geometry.location.lat;
-      const longitude = firstResult.geometry.location.lng;
-      console.log(`${latitude}, ${longitude}`);
-      return { latitude, longitude };
-    } else {
-      console.error("Неможливо знайти цю локацію.");
-    }
-  } catch (error) {
-    console.error(`Data loading error: ${error}`);
-  }
+const fetchLocationData = async (location) => {
+  const response = await fetch(
+    `https://maps.googleapis.com/maps/api/geocode/json?address=${location}&key=AIzaSyDmbjc-G3ZjtskIGqn5DZQSo0DcIz_6VFA`
+  );
+  return await response.json();
 };
-
-userLocationManually();
 
 const wetherData = async () => {
   try {
-    const { latitude, longitude } = await userGeolocationAuto();
-    // console.log(latitude, longitude);
+    let latitude, longitude;
+
+    const userInput = document.querySelector(".location-return").value.trim();
+    const backToAutoLocationBtn = document.querySelector('.user-autolocation-btn');
+
+    const ifClickedBackToAutoLocationBtn = backToAutoLocationBtn.addEventListener('click', async () => {
+
+    })
+
+    if (userInput) {
+      const manualLocation = await userEntersLocation();
+      if (manualLocation) {
+        latitude = manualLocation.latitude;
+        longitude = manualLocation.longitude;
+      }
+    } else if (ifClickedBackToAutoLocationBtn) {
+      const autoLocationBtn = await userGeolocationAuto();
+      latitude = autoLocationBtn.latitude;
+      longitude = autoLocationBtn.longitude;
+    } else {
+      const autoLocation = await userGeolocationAuto();
+      latitude = autoLocation.latitude;
+      longitude = autoLocation.longitude;
+    }
+
+    console.log(latitude, longitude);
 
     const response = await fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m&current_weather=true&timezone=auto&forecast_days=1`
     );
 
     const weatherData = await response.json();
+
     const resp = await fetch(
       `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AIzaSyDmbjc-G3ZjtskIGqn5DZQSo0DcIz_6VFA`
     );
     const userManualLocation = await resp.json();
     console.log(userManualLocation);
     const userCity =
+      userManualLocation.results[0].address_components[1].long_name;
+    const userRegion =
       userManualLocation.results[0].address_components[3].long_name;
-    console.log(userCity);
-    return { weatherData, userCity };
+    const userLocation = `${userRegion}, ${userCity}`;
+    const userLanguage = navigator.language || navigator.userLanguage;
+    console.log(userLanguage);
+    return { weatherData, userLocation };
   } catch (error) {
     console.error(`Data loading error: ${error}`);
   }
 };
 
+const locationInput = document.querySelector(".location-return");
+locationInput.addEventListener("keydown", async (event) => {
+  if (event.key === "Enter") {
+    try {
+      const { latitude, longitude } = await userEntersLocation();
+      console.log(latitude, longitude);
+
+      if (latitude && longitude) {
+        await wetherData();
+        renderWeatherData();
+        
+        // Очищаємо поле введення
+        locationInput.value = "";
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+});
+
 const renderWeatherData = async () => {
   try {
-    const { weatherData, userCity } = await wetherData();
+    const { weatherData, userLocation } = await wetherData();
     // console.log(weatherDataObj);
     const weatherDataArray = weatherData["current_weather"];
     // console.log(weatherDataArray);
@@ -113,11 +138,10 @@ const renderWeatherData = async () => {
     const temperatureValue = weatherDataArray["temperature"];
 
     temperature.textContent = `${temperatureValue}°C`;
-    currentCity.textContent = `${userCity}`;
+    currentCity.textContent = `${userLocation}`;
   } catch (error) {
     console.error(`data loading error${error}`);
   }
 };
 
 renderWeatherData();
-
